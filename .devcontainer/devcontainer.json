@@ -1,6 +1,6 @@
 {
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
-  "updateContentCommand": "sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y libjpeg-dev libjpeg-turbo8-dev libjpeg8-dev zlib1g-dev",
+  "updateContentCommand": "sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y libjpeg-dev libjpeg62-turbo-dev zlib1g-dev",
   "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {},
@@ -14,7 +14,6 @@
         "GitHub.copilot-chat",
         "GitHub.copilot-workspace",
         "GitHub.copilot-tools-pack"
-      
       ]
     }
   }
