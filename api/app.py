@@ -2,21 +2,20 @@ from flask import Flask, request
 import os
 import sys
 
-# プロジェクトルートをモジュール検索パスに追加
+# モジュール検索パスにプロジェクトルートを追加
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import main  # 動画処理ロジック
 
-# Flaskアプリの設定
+# Flaskアプリケーション設定
 app = Flask(
     __name__,
-    static_folder=os.path.join(os.path.dirname(__file__), "../static")
+    static_folder=os.path.join(os.path.dirname(__file__), "../static")  # 明示的にstaticフォルダを指定
 )
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
-
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB
 
 # アップロードフォルダの設定
-UPLOAD_FOLDER = os.path.join(app.static_folder, "uploads")
+UPLOAD_FOLDER = os.path.join(app.static_folder, "uploads")  # staticフォルダ内のuploadsを指定
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/', methods=['GET', 'POST'])
@@ -33,7 +32,7 @@ def upload_file():
         main_video.save(os.path.join(UPLOAD_FOLDER, 'main.mp4'))
 
         # 動画処理を呼び出し
-        main.main()
+        main.process_video()
 
         return "処理が完了しました！"
     return '''
@@ -61,5 +60,8 @@ def upload_file():
     </html>
     '''
 
-if __name__ == '__main__':
+# Vercelがエントリポイントとして認識するためのコード
+if __name__ != "__main__":
+    app = app
+else:
     app.run(host="0.0.0.0", port=5000, debug=True)
