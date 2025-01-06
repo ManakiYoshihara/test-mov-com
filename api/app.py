@@ -2,12 +2,23 @@ from flask import Flask, request
 from google.cloud import storage
 import os
 import sys
+import json
 
 # モジュール検索パスにプロジェクトルートを追加
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import main  # 動画処理ロジック
 
+# Vercel環境でJSONキーを一時ファイルに保存
+def setup_google_credentials():
+    credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if not credentials_json:
+        raise ValueError("環境変数 'GOOGLE_APPLICATION_CREDENTIALS_JSON' が設定されていません。Vercelのダッシュボードで設定してください。")
+    
+    key_file_path = "/tmp/service-account-key.json"
+    with open(key_file_path, "w") as f:
+        f.write(credentials_json)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file_path
 
 # Flaskアプリケーション設定
 app = Flask(
@@ -37,28 +48,34 @@ def upload_to_gcs(file_stream, bucket_name, destination_blob_name):
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        # ファイルをアップロード
-        thumbnail = request.files['thumbnail']
-        question = request.files['question']
-        main_video = request.files['main']
+        try:
+            # 環境変数を設定
+            setup_google_credentials()
+            
+            # ファイルをアップロード
+            thumbnail = request.files['thumbnail']
+            question = request.files['question']
+            main_video = request.files['main']
 
-        # GCSにファイルを保存
-        upload_to_gcs(thumbnail.stream, BUCKET_NAME, 'uploads/thumbnail.png')
-        upload_to_gcs(question.stream, BUCKET_NAME, 'uploads/question.png')
-        upload_to_gcs(main_video.stream, BUCKET_NAME, 'uploads/main.mp4')
+            # GCSにファイルを保存
+            upload_to_gcs(thumbnail.stream, BUCKET_NAME, 'uploads/thumbnail.png')
+            upload_to_gcs(question.stream, BUCKET_NAME, 'uploads/question.png')
+            upload_to_gcs(main_video.stream, BUCKET_NAME, 'uploads/main.mp4')
 
-        # ローカルディレクトリに一時保存（オプション）
-        thumbnail_path = os.path.join(UPLOAD_FOLDER, 'thumbnail.png')
-        question_path = os.path.join(UPLOAD_FOLDER, 'question.png')
-        main_video_path = os.path.join(UPLOAD_FOLDER, 'main.mp4')
-        thumbnail.save(thumbnail_path)
-        question.save(question_path)
-        main_video.save(main_video_path)
+            # ローカルディレクトリに一時保存（オプション）
+            thumbnail_path = os.path.join(UPLOAD_FOLDER, 'thumbnail.png')
+            question_path = os.path.join(UPLOAD_FOLDER, 'question.png')
+            main_video_path = os.path.join(UPLOAD_FOLDER, 'main.mp4')
+            thumbnail.save(thumbnail_path)
+            question.save(question_path)
+            main_video.save(main_video_path)
 
-        # 動画処理を呼び出し
-        main.main()
+            # 動画処理を呼び出し
+            main.main()
 
-        return "処理が完了しました！"
+            return "処理が完了しました！"
+        except Exception as e:
+            return f"エラーが発生しました: {e}", 500
     return '''
     <!DOCTYPE html>
     <html lang="ja">
