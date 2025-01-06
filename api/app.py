@@ -1,4 +1,5 @@
 from flask import Flask, request
+from google.cloud import storage
 import os
 import sys
 
@@ -7,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import main  # 動画処理ロジック
 
+
 # Flaskアプリケーション設定
 app = Flask(
     __name__,
@@ -14,9 +16,23 @@ app = Flask(
 )
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB
 
-# アップロードフォルダの設定
-UPLOAD_FOLDER = os.path.join(app.static_folder, "uploads")  # staticフォルダ内のuploadsを指定
+# GCSバケット設定
+BUCKET_NAME = "laf-video"  # GCSのバケット名
+UPLOAD_FOLDER = os.path.join(app.static_folder, "uploads")  # ローカルアップロード用フォルダ
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def upload_to_gcs(file_stream, bucket_name, destination_blob_name):
+    """
+    GCSにファイルをアップロードする関数
+    :param file_stream: アップロードされたファイルオブジェクト
+    :param bucket_name: GCSのバケット名
+    :param destination_blob_name: GCS内の保存先ファイル名
+    """
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_file(file_stream)
+    print(f"Uploaded {destination_blob_name} to bucket {bucket_name}.")
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -26,13 +42,21 @@ def upload_file():
         question = request.files['question']
         main_video = request.files['main']
 
-        # ファイルを保存
-        thumbnail.save(os.path.join(UPLOAD_FOLDER, 'thumbnail.png'))
-        question.save(os.path.join(UPLOAD_FOLDER, 'question.png'))
-        main_video.save(os.path.join(UPLOAD_FOLDER, 'main.mp4'))
+        # GCSにファイルを保存
+        upload_to_gcs(thumbnail.stream, BUCKET_NAME, 'uploads/thumbnail.png')
+        upload_to_gcs(question.stream, BUCKET_NAME, 'uploads/question.png')
+        upload_to_gcs(main_video.stream, BUCKET_NAME, 'uploads/main.mp4')
+
+        # ローカルディレクトリに一時保存（オプション）
+        thumbnail_path = os.path.join(UPLOAD_FOLDER, 'thumbnail.png')
+        question_path = os.path.join(UPLOAD_FOLDER, 'question.png')
+        main_video_path = os.path.join(UPLOAD_FOLDER, 'main.mp4')
+        thumbnail.save(thumbnail_path)
+        question.save(question_path)
+        main_video.save(main_video_path)
 
         # 動画処理を呼び出し
-        main.process_video()
+        main.main()
 
         return "処理が完了しました！"
     return '''
