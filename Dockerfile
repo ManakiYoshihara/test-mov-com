@@ -1,5 +1,5 @@
 # Pythonの軽量イメージ
-FROM python:3.9-slim
+FROM python:3.12.8-slim
 
 # 作業ディレクトリの設定
 WORKDIR /app
