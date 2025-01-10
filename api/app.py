@@ -13,7 +13,7 @@ import main  # 動画処理ロジック
 def setup_google_credentials():
     credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
     if not credentials_json:
-        raise ValueError("環境変数 'GOOGLE_APPLICATION_CREDENTIALS_JSON' が設定されていません。Vercelのダッシュボードで設定してください。")
+        raise ValueError("環境変数 'GOOGLE_APPLICATION_CREDENTIALS_JSON' が設定されていません。")
     
     key_file_path = "/tmp/service-account-key.json"
     with open(key_file_path, "w") as f:
@@ -105,4 +105,5 @@ def upload_file():
 if __name__ != "__main__":
     app = app
 else:
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=True)
